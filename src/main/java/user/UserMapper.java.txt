@@ -1,0 +1,12 @@
+package com.wuhan.seckill.user.mapper;
+
+import com.wuhan.seckill.user.entity.User;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface UserMapper {
+    User selectByUsername(String username);
+    User selectByPhone(String phone);
+    int insert(User user);
+    User selectById(Long id);
+}

@@ -1,0 +1,57 @@
+package com.wuhan.seckill.user.service.impl;
+
+import com.wuhan.seckill.user.entity.User;
+import com.wuhan.seckill.user.mapper.UserMapper;
+import com.wuhan.seckill.user.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+import java.time.LocalDateTime;
+
+@Service
+public class UserServiceImpl implements UserService {
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Override
+    public User register(User user) {
+        // 校验用户名是否已存在
+        User existUser = userMapper.selectByUsername(user.getUsername());
+        if (existUser != null) {
+            throw new RuntimeException("用户名已存在");
+        }
+        // 校验手机号是否已存在
+        existUser = userMapper.selectByPhone(user.getPhone());
+        if (existUser != null) {
+            throw new RuntimeException("手机号已被注册");
+        }
+        // 密码加密（这里简化处理，实际项目需用 BCrypt 等）
+        user.setPassword(user.getPassword());
+        user.setCreateTime(LocalDateTime.now());
+        user.setUpdateTime(LocalDateTime.now());
+        userMapper.insert(user);
+        return user;
+    }
+
+    @Override
+    public User login(String username, String password) {
+        if (!StringUtils.hasText(username) || !StringUtils.hasText(password)) {
+            throw new RuntimeException("用户名或密码不能为空");
+        }
+        User user = userMapper.selectByUsername(username);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        if (!password.equals(user.getPassword())) {
+            throw new RuntimeException("密码错误");
+        }
+        return user;
+    }
+
+    @Override
+    public User getUserById(Long id) {
+        return userMapper.selectById(id);
+    }
+}

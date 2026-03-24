@@ -1,0 +1,44 @@
+package com.wuhan.seckill.user.controller;
+
+import com.wuhan.seckill.common.result.Result;
+import com.wuhan.seckill.user.entity.User;
+import com.wuhan.seckill.user.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/user")
+public class UserController {
+
+    @Autowired
+    private UserService userService;
+
+    @PostMapping("/register")
+    public Result<User> register(@RequestBody User user) {
+        try {
+            User newUser = userService.register(user);
+            return Result.success("注册成功", newUser);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    @PostMapping("/login")
+    public Result<User> login(@RequestParam String username, @RequestParam String password) {
+        try {
+            User user = userService.login(username, password);
+            return Result.success("登录成功", user);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}")
+    public Result<User> getUserById(@PathVariable Long id) {
+        User user = userService.getUserById(id);
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
+        return Result.success(user);
+    }
+}
