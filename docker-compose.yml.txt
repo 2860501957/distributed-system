@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: seckill-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: seckill_db
+      MYSQL_USER: seckill
+      MYSQL_PASSWORD: seckill123
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql-data:/var/lib/mysql
+    networks:
+      - seckill-network
+    restart: always
+
+  # Redis 缓存
+  redis:
+    image: redis:7.2
+    container_name: seckill-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - seckill-network
+    restart: always
+
+  # 后端服务实例1（8081端口）
+  seckill-backend-1:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: seckill-backend-1
+    environment:
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/seckill_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root123456
+      SPRING_REDIS_HOST: redis
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - seckill-network
+    restart: always
+
+  # 后端服务实例2（8082端口）
+  seckill-backend-2:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: seckill-backend-2
+    environment:
+      SERVER_PORT: 8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/seckill_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root123456
+      SPRING_REDIS_HOST: redis
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - seckill-network
+    restart: always
+
+  # Nginx 负载均衡 + 动静分离
+  nginx:
+    build:
+      context: ./docker/nginx
+    container_name: seckill-nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - seckill-backend-1
+      - seckill-backend-2
+    networks:
+      - seckill-network
+    restart: always
+
+volumes:
+  mysql-data:
+  redis-data:
+
+networks:
+  seckill-network:
+    driver: bridge

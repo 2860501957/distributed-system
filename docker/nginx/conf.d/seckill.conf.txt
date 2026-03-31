@@ -1,0 +1,35 @@
+# 负载均衡配置：后端两个实例（8081、8082）
+upstream seckill_backend {
+    # 轮询算法（默认），也可以换成 ip_hash、least_conn 等
+    server seckill-backend-1:8081;
+    server seckill-backend-2:8082;
+    # 加权轮询示例：weight=2 表示权重更高
+    # server seckill-backend-1:8081 weight=2;
+    # server seckill-backend-2:8082 weight=1;
+}
+
+# 动静分离配置
+server {
+    listen 80;
+    server_name localhost;
+
+    # 静态资源：直接由 Nginx 处理
+    location ~ .*\.(html|css|js|png|jpg|jpeg|gif)$ {
+        root /usr/share/nginx/html;
+        expires 7d; # 缓存7天，提升性能
+    }
+
+    # 动态请求：转发到后端负载均衡集群
+    location /api/ {
+        proxy_pass http://seckill_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # 首页
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+    }
+}

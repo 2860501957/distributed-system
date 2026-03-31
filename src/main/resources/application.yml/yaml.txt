@@ -14,3 +14,20 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+spring:
+  # 新增 Redis 配置
+  redis:
+    host: redis  # docker-compose 中的服务名
+    port: 6379
+    database: 0
+    timeout: 3000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+
+# 多实例端口配置（通过环境变量动态设置，docker-compose 中指定）
+server:
+  port: ${SERVER_PORT:8080}

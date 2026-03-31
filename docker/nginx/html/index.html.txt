@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>秒杀系统首页</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #2c3e50; }
+        .btn { padding: 10px 20px; font-size: 18px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>欢迎来到秒杀系统</h1>
+        <p>这是 Nginx 动静分离的静态页面</p>
+        <button class="btn" onclick="getProduct(1)">查询商品1</button>
+        <div id="result" style="margin-top: 20px; text-align: left;"></div>
+    </div>
+
+    <script>
+        async function getProduct(id) {
+            const res = await fetch(`/api/product/${id}`);
+            const data = await res.json();
+            document.getElementById('result').innerHTML = JSON.stringify(data, null, 2);
+        }
+    </script>
+</body>
+</html>
