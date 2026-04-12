@@ -1,24 +1,23 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 spring:
+  # 多数据源配置（读写分离）
   datasource:
-    url: jdbc:mysql://localhost:3306/seckill_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false
-    username: root
-    password: your_password
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    master:
+      url: jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false
+      username: root
+      password: root123456
+      driver-class-name: com.mysql.cj.jdbc.Driver
+    slave:
+      url: jdbc:mysql://mysql-slave:3306/seckill_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false
+      username: root
+      password: root123456
+      driver-class-name: com.mysql.cj.jdbc.Driver
 
-mybatis:
-  mapper-locations: classpath:mapper/*.xml
-  type-aliases-package: com.wuhan.seckill.*.entity
-  configuration:
-    map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-
-spring:
-  # 新增 Redis 配置
+  # Redis 配置
   redis:
-    host: redis  # docker-compose 中的服务名
+    host: redis
     port: 6379
     database: 0
     timeout: 3000ms
@@ -28,6 +27,9 @@ spring:
         max-idle: 8
         min-idle: 0
 
-# 多实例端口配置（通过环境变量动态设置，docker-compose 中指定）
-server:
-  port: ${SERVER_PORT:8080}
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.wuhan.seckill.*.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

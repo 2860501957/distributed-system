@@ -1,15 +1,11 @@
 package com.wuhan.seckill.product.service.impl;
 
+import com.wuhan.seckill.common.util.RedisUtils;
 import com.wuhan.seckill.product.entity.Product;
 import com.wuhan.seckill.product.mapper.ProductMapper;
 import com.wuhan.seckill.product.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -18,41 +14,68 @@ public class ProductServiceImpl implements ProductService {
     private ProductMapper productMapper;
 
     @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
+    private RedisUtils redisUtils;
 
-    // 缓存前缀
     private static final String CACHE_KEY_PRODUCT = "product:info:";
-    // 缓存过期时间（30分钟 + 随机5分钟，防止缓存雪崩）
-    private static final int CACHE_EXPIRE_MINUTES = 30;
-    private static final int CACHE_RANDOM_MINUTES = 5;
+    private static final String LOCK_KEY_PRODUCT = "product:lock:";
+    // 缓存过期时间：30分钟 = 1800秒，随机±300秒，防雪崩
+    private static final int CACHE_EXPIRE = 1800;
+    private static final int CACHE_RANDOM = 300;
+    // 空值缓存过期时间：1分钟，防穿透
+    private static final int NULL_EXPIRE = 60;
+    // 分布式锁过期时间：3秒，防击穿
+    private static final int LOCK_EXPIRE = 3;
 
     @Override
     public Product getProductById(Long id) {
-        // 1. 空值校验（防止缓存穿透：非法ID直接返回）
+        // 1. 非法ID校验（防穿透第一步）
         if (id == null || id <= 0) {
             return null;
         }
 
         String cacheKey = CACHE_KEY_PRODUCT + id;
+        String lockKey = LOCK_KEY_PRODUCT + id;
+
         // 2. 先查缓存
-        Product product = (Product) redisTemplate.opsForValue().get(cacheKey);
+        Product product = (Product) redisUtils.get(cacheKey);
         if (product != null) {
-            // 缓存命中，直接返回
+            // 缓存命中：如果是空值，直接返回null（防穿透）
             return product;
         }
 
-        // 3. 缓存未命中，查数据库
-        product = productMapper.selectById(id);
-        if (product == null) {
-            // 4. 数据库也不存在：缓存空值（防止缓存穿透），过期时间1分钟
-            redisTemplate.opsForValue().set(cacheKey, null, 1, TimeUnit.MINUTES);
-            return null;
+        // 3. 缓存未命中：加分布式锁（防缓存击穿，避免大量请求打穿到数据库）
+        if (!redisUtils.tryLock(lockKey, LOCK_EXPIRE)) {
+            // 抢锁失败：休眠100ms后重试，避免惊群效应
+            try {
+                Thread.sleep(100);
+                return (Product) redisUtils.get(cacheKey);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
         }
 
-        // 5. 数据库存在：写入缓存，加随机过期时间（防止缓存雪崩）
-        int expireTime = CACHE_EXPIRE_MINUTES + new Random().nextInt(CACHE_RANDOM_MINUTES);
-        redisTemplate.opsForValue().set(cacheKey, product, expireTime, TimeUnit.MINUTES);
+        try {
+            // 4. 抢到锁：再次查缓存（双重校验，避免重复查询）
+            product = (Product) redisUtils.get(cacheKey);
+            if (product != null) {
+                return product;
+            }
 
-        return product;
+            // 5. 查数据库
+            product = productMapper.selectById(id);
+            if (product == null) {
+                // 6. 数据库不存在：缓存空值（防穿透）
+                redisUtils.set(cacheKey, null, NULL_EXPIRE, 0);
+                return null;
+            }
+
+            // 7. 数据库存在：写入缓存，加随机过期时间（防缓存雪崩）
+            redisUtils.set(cacheKey, product, CACHE_EXPIRE, CACHE_RANDOM);
+            return product;
+        } finally {
+            // 8. 释放锁
+            redisUtils.releaseLock(lockKey);
+        }
     }
 }
