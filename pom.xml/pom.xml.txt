@@ -26,6 +26,21 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+
+<!-- Kafka 消息队列 -->
+<dependency>
+    <groupId>org.springframework.kafka</groupId>
+    <artifactId>spring-kafka</artifactId>
+</dependency>
+
+<!-- ShardingSphere-JDBC 分库分表 -->
+<dependency>
+    <groupId>org.apache.shardingsphere</groupId>
+    <artifactId>sharding-jdbc-spring-boot-starter</artifactId>
+    <version>4.1.1</version>
+</dependency>
+
+
         <!-- MyBatis -->
         <dependency>
             <groupId>org.mybatis.spring.boot</groupId>

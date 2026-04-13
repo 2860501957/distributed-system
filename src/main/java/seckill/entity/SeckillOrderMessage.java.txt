@@ -1,0 +1,13 @@
+package com.wuhan.seckill.seckill.entity;
+
+import lombok.Data;
+import java.io.Serializable;
+
+@Data
+public class SeckillOrderMessage implements Serializable {
+    private static final long serialVersionUID = 1L;
+    private Long userId;
+    private Long productId;
+    private Long orderId; // 雪花算法生成的订单ID
+    private Integer quantity;
+}
