@@ -46,3 +46,9 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+# 新增Kafka事务配置
+spring:
+  kafka:
+    producer:
+      transaction-id-prefix: seckill-transaction-
