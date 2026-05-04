@@ -1,0 +1,55 @@
+server
+  port 8080
+
+spring
+  application
+    name seckill-gateway
+  cloud
+    nacos
+      discovery
+        server-addr nacos8848
+    gateway
+      routes
+        # 用户服务路由
+        - id user-service-route
+          uri lbseckill-user-service  # lb 表示从Nacos获取服务实例
+          predicates
+            - Path=apiuser
+        # 商品服务路由
+        - id product-service-route
+          uri lbseckill-product-service
+          predicates
+            - Path=apiproduct
+        # 秒杀服务路由
+        - id seckill-service-route
+          uri lbseckill-seckill-service
+          predicates
+            - Path=apiseckill
+
+# Sentinel 配置
+sentinel
+  transport
+    dashboard sentinel8858  # Sentinel控制台地址
+    port 8719
+
+
+    spring:
+  cloud:
+    sentinel:
+      transport:
+        dashboard: sentinel:8858
+        port: 8719
+      # 限流配置（也可在控制台动态配置）
+      flow:
+        rules:
+          - resource: /api/seckill/submit
+            count: 100  # 每秒允许100个请求
+            grade: QPS
+            controlBehavior: default
+      # 熔断降级配置
+      degrade:
+        rules:
+          - resource: /api/seckill/submit
+            grade: RT
+            count: 1000  # 响应时间超过1000ms触发熔断
+            timeWindow: 10  # 熔断持续10秒

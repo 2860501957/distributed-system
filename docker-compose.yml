@@ -122,3 +122,31 @@ services:
       - "29092:29092"
     networks:
       - seckill-network
+
+      services:
+  # Nacos 服务注册与配置中心
+  nacos:
+    image: nacos/nacos-server:v2.1.2
+    container_name: seckill-nacos
+    environment:
+      MODE: standalone
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql-master
+      MYSQL_SERVICE_DB_NAME: seckill_nacos
+      MYSQL_SERVICE_USER: root
+      MYSQL_SERVICE_PASSWORD: root123456
+    ports:
+      - "8848:8848"
+    networks:
+      - seckill-network
+    restart: always
+
+  # Sentinel 流量治理控制台
+  sentinel:
+    image: bladex/sentinel-dashboard:1.8.6
+    container_name: seckill-sentinel
+    ports:
+      - "8858:8858"
+    networks:
+      - seckill-network
+    restart: always
